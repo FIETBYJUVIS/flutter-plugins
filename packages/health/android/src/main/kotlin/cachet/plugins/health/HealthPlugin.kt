@@ -10,8 +10,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.NonNull
 import androidx.core.content.ContextCompat
 import androidx.health.connect.client.HealthConnectClient
@@ -78,7 +76,6 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     private var context: Context? = null
     private var threadPoolExecutor: ExecutorService? = null
     private var useHealthConnectIfAvailable: Boolean = false
-    private var healthConnectRequestPermissionsLauncher:  ActivityResultLauncher<Set<String>>? = null
     private lateinit var healthConnectClient: HealthConnectClient
     private lateinit var scope: CoroutineScope
 
@@ -424,18 +421,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         return false
     }
 
-    private  fun onHealthConnectPermissionCallback(permissionGranted: Set<String>)
-    {
-        if(permissionGranted.isEmpty()) {
-            mResult?.success(false);
-            Log.i("FLUTTER_HEALTH", "Access Denied (to Health Connect)!")
 
-        }else {
-            mResult?.success(true);
-            Log.i("FLUTTER_HEALTH", "Access Granted (to Health Connect)!")
-        }
-
-    }
     private fun keyToHealthDataType(type: String): DataType {
         return when (type) {
             BODY_FAT_PERCENTAGE -> DataType.TYPE_BODY_FAT_PERCENTAGE
@@ -1572,13 +1558,6 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         }
         binding.addActivityResultListener(this)
         activity = binding.activity
-        if ( healthConnectAvailable) {
-            val requestPermissionActivityContract = PermissionController.createRequestPermissionResultContract()
-
-            healthConnectRequestPermissionsLauncher =(activity as ComponentActivity).registerForActivityResult(requestPermissionActivityContract) { granted ->
-                onHealthConnectPermissionCallback(granted);
-            }
-        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -1594,7 +1573,6 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
             return
         }
         activity = null
-        healthConnectRequestPermissionsLauncher = null;
     }
 
     /**
@@ -1705,19 +1683,11 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
                 }
             }
         }
-//        val contract = PermissionController.createRequestPermissionResultContract()
-//        val intent = contract.createIntent(activity!!, permList.toSet())
+        val contract = PermissionController.createRequestPermissionResultContract()
+        val intent = contract.createIntent(activity!!, permList.toSet())
         // fix this line on forked package
         // activity!!.startActivityForResult(intent, HEALTH_CONNECT_RESULT_CODE)
-//        activity!!.startActivityForResult(intent, HEALTH_CONNECT_REQUEST_CODE)
-        if(healthConnectRequestPermissionsLauncher == null) {
-            result.success(false)
-            Log.i("FLUTTER_HEALTH", "Permission launcher not found")
-            return;
-        }
-
-
-        healthConnectRequestPermissionsLauncher!!.launch(permList.toSet());s
+        activity!!.startActivityForResult(intent, HEALTH_CONNECT_REQUEST_CODE)
     }
 
     fun getHCData(call: MethodCall, result: Result) {
