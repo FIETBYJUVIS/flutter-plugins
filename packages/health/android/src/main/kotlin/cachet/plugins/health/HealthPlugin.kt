@@ -1717,7 +1717,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         }
 
 
-        healthConnectRequestPermissionsLauncher!!.launch(permList.toSet());s
+        healthConnectRequestPermissionsLauncher!!.launch(permList.toSet());
     }
 
     fun getHCData(call: MethodCall, result: Result) {
